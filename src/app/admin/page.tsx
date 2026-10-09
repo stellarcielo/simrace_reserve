@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type Reservation = {
@@ -25,6 +26,9 @@ export default function AdminDashboardPage() {
   const [date, setDate] = useState("");
   const [q, setQ] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [generatingSamples, setGeneratingSamples] = useState(false);
+  const [sampleReservations, setSampleReservations] = useState<Reservation[] | null>(null);
+  const [sampleError, setSampleError] = useState<string | null>(null);
 
   async function load() {
     const params = new URLSearchParams();
@@ -34,6 +38,9 @@ export default function AdminDashboardPage() {
       cache: "no-store",
     });
     const data = await res.json();
+    if (!res.ok || !Array.isArray(data.reservations)) {
+      throw new Error(data.error ?? "予約一覧の取得に失敗しました。");
+    }
     setReservations(data.reservations as Reservation[]);
   }
 
@@ -56,9 +63,93 @@ export default function AdminDashboardPage() {
     setBusyId(null);
   }
 
+  async function handleGenerateSamples() {
+    if (generatingSamples) return;
+    setGeneratingSamples(true);
+    setSampleError(null);
+    setSampleReservations(null);
+    let created = false;
+
+    try {
+      const res = await fetch("/api/admin/reservations/sample", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setSampleError(data.error ?? "サンプル予約の生成に失敗しました。");
+        return;
+      }
+
+      setSampleReservations(data.reservations as Reservation[]);
+      created = true;
+      await load();
+    } catch {
+      setSampleError(
+        created
+          ? "サンプル予約は生成できましたが、予約一覧の更新に失敗しました。ページを再読み込みしてください。"
+          : "通信エラーが発生しました。時間をおいて再度お試しください。",
+      );
+    } finally {
+      setGeneratingSamples(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       <h1 className="text-xl font-bold">予約一覧・受付</h1>
+
+      <section
+        aria-labelledby="sample-reservations-heading"
+        className="mt-4 rounded-xl border border-slate-200 bg-white p-4"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 id="sample-reservations-heading" className="text-sm font-semibold">
+              サンプル予約
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              稼働中の機体と、受付中の現在・未来の時間枠の空きに、最大5件のサンプル予約を作成します。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleGenerateSamples}
+            disabled={generatingSamples}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
+          >
+            {generatingSamples ? "生成中..." : "サンプル予約を生成"}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          先に設定画面で機体・時間枠を登録してください。サンプルも実際の予約枠を使用します。不要になったら予約コードのリンク先でキャンセルできます。
+        </p>
+        {sampleError && (
+          <p role="alert" className="mt-3 text-sm text-red-600">
+            {sampleError}
+          </p>
+        )}
+        {sampleReservations && (
+          <div className="mt-3">
+            <p role="status" className="text-sm text-emerald-600">
+              {sampleReservations.length}件のサンプル予約を生成しました。
+            </p>
+            <ul className="mt-2 space-y-1 text-sm">
+              {sampleReservations.map((reservation) => (
+                <li key={reservation.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <Link
+                    href={`/reservation/${reservation.code}`}
+                    className="font-mono tracking-wider text-blue-700 underline underline-offset-2"
+                  >
+                    {reservation.code}
+                  </Link>
+                  <span className="text-slate-600">
+                    {reservation.slot.date} {formatTimeLabel(reservation.slot.startTime)}〜
+                    {formatTimeLabel(reservation.slot.endTime)} / {reservation.rig.name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <select
