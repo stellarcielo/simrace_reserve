@@ -44,7 +44,7 @@ export default function ReservationDetailClient({ code }: { code: string }) {
 
   async function load() {
     setLoading(true);
-    const res = await fetch(`/api/reservations/${code}`, { cache: "no-store" });
+    const res = await fetch(`/api/reservations/${encodeURIComponent(code)}`, { cache: "no-store" });
     const data = await res.json();
     if (!res.ok) {
       setError(data.error ?? "予約が見つかりません。");
@@ -66,7 +66,7 @@ export default function ReservationDetailClient({ code }: { code: string }) {
   async function handleCancel() {
     if (!confirm("この予約をキャンセルしますか？")) return;
     setCancelling(true);
-    const res = await fetch(`/api/reservations/${code}`, { method: "DELETE" });
+    const res = await fetch(`/api/reservations/${encodeURIComponent(code)}`, { method: "DELETE" });
     const data = await res.json();
     if (!res.ok) {
       setError(data.error ?? "キャンセルに失敗しました。");

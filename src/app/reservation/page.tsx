@@ -10,7 +10,7 @@ export default function ReservationLookupPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = code.trim().toUpperCase();
-    if (trimmed) router.push(`/reservation/${trimmed}`);
+    if (trimmed) router.push(`/reservation/${encodeURIComponent(trimmed)}`);
   }
 
   return (
