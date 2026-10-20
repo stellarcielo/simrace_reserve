@@ -118,7 +118,7 @@ docker run -d --name simrace-reserve --restart unless-stopped -p 4000:4000 -v si
 ```
 
 - DB のバックアップは `docker cp simrace-reserve:/app/data/app.db ./backup.db` で取得できる
-- 既存の `dev.db` を引き継ぐ場合は、受付開始前に `docker cp ./dev.db simrace-reserve:/app/data/app.db` → `docker restart simrace-reserve`
+- 既存の `dev.db` を引き継ぐ場合は、受付開始前に `docker cp ./dev.db simrace-reserve:/app/data/app.db` → `docker restart simrace-reserve`（コピーしたファイルは root 所有になるが、起動時に自動で所有者を直すので再起動すれば書き込める）
 - `AUTH_SECRET` を変えるとログイン中のセッションが無効になるだけで、予約データには影響しない
 
 ### 方式B: Vercel + Postgres

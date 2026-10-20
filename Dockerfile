@@ -44,8 +44,9 @@ COPY --from=builder --chown=node:node /app/.next ./.next
 RUN mkdir -p /app/data && chown node:node /app/data
 VOLUME ["/app/data"]
 
-USER node
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/simrace-entrypoint.sh
+
 EXPOSE 4000
 
-# 起動時にマイグレーションを適用してからサーバーを起動
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && exec node_modules/.bin/next start -H 0.0.0.0 -p 4000"]
+# root で起動して /app/data の所有者を直したあと、node ユーザーでマイグレーション → サーバー起動
+CMD ["/usr/local/bin/simrace-entrypoint.sh"]
